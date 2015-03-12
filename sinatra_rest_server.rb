@@ -1,9 +1,13 @@
 require 'sinatra'
 require 'JSON'
 require 'cassandra'
+require 'logger'
+
+log = Logger.new(STDOUT)
+log.level = Logger::INFO
 
 # connect to the cluster
-cluster = Cassandra.cluster
+cluster = Cassandra.cluster(logger: log)
 keyspace = 'demo'
 session  = cluster.connect(keyspace)
 
@@ -13,44 +17,70 @@ userInsertStatement = session.prepare("INSERT INTO users (firstname, lastname, a
 userUpdateStatement = session.prepare("UPDATE users SET age = ? WHERE lastname = ?")
 userDeleteStatement = session.prepare("DELETE FROM users WHERE lastname = ?")
 
-# TODO Put exception handling around each method
 
 # Get one user
 get '/users/:lastname' do
 
-  result = session.execute(userSelectStatement, :arguments [params[:lastname]])
+  begin
+    result = session.execute(userSelectStatement, :arguments=>[params[:lastname]])
 
-  if result.size < 1
+    if result.size < 1
+      halt(404)
+    end
+
+    result.first.to_json
+  rescue Exception => e
+    log.error 'Error in select a user'
+    log.error(e)
     halt(404)
   end
-
-  result.first.to_json
 
 end
 
 # Insert a user
 post '/users' do
 
-  session.execute(userInsertStatement, :arguments=>[params[:firstname],params[:lastname],params[:age].to_i,params[:city],params[:email]])
+  begin
+    session.execute(userInsertStatement, :arguments=>[params[:firstname],params[:lastname],params[:age].to_i,params[:city],params[:email]])
 
-  "Inserted"
+    "Inserted"
+
+  rescue Exception => e
+    log.error 'Error in insert a user'
+    log.error(e)
+    halt(404)
+  end
 
 end
 
 # Update a user
 put '/users' do
 
-  session.execute(userUpdateStatement, :arguments=>[params[:age].to_i,params[:lastname]])
+  begin
+    session.execute(userUpdateStatement, :arguments=>[params[:age].to_i,params[:lastname]])
 
-  "Updated"
+    "Updated"
+
+  rescue Exception => e
+    log.error 'Error in update a user'
+    log.error(e)
+    halt(404)
+  end
 
 end
 
 # Delete a user
 delete '/users/:lastname' do
 
-  session.execute(userDeleteStatement, :arguments=>[params[:lastname]])
+  begin
+    session.execute(userDeleteStatement, :arguments=>[params[:lastname]])
 
-  "Deleted"
+    "Deleted"
+
+  rescue Exception => e
+    log.error 'Error in delete a user'
+    log.error(e)
+    halt(404)
+  end
 
 end
