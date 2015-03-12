@@ -7,7 +7,12 @@ log = Logger.new(STDOUT)
 log.level = Logger::INFO
 
 # connect to the cluster
-cluster = Cassandra.cluster(logger: log)
+cluster = Cassandra.cluster(
+    :hosts => ['127.0.01'],
+    :load_balancing_policy => Cassandra::LoadBalancing::Policies::RoundRobin.new,
+    :retry_policy => Cassandra::Retry::Policies::Default.new,
+    logger: log)
+
 keyspace = 'demo'
 session  = cluster.connect(keyspace)
 
